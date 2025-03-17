@@ -71,3 +71,10 @@
 
 4. **Генерация изображений:**
    - Запустите `main.py` в режиме тестирования, чтобы сгенерировать изображения.
+
+
+
+---
+## Результаты обучения 
+
+https://drive.google.com/file/d/1pAfcZx8JZEAH38CTF6GjU4ciXPyV8kFd/view?usp=sharing
