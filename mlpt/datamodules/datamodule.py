@@ -1,26 +1,29 @@
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-import mlpt.config.config as cfg
 from mlpt.datamodules.datasets import DeepFashionCaptionDataset
 
+
 class DeepFashionDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir, batch_size=cfg.TRAIN_BATCH_SIZE, workers=cfg.WORKERS, max_samples=15000):
+    def __init__(self, data_dir, batch_size, workers,
+                 max_samples, text_dimension, imsize):
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.workers = workers
         self.max_samples = max_samples
-        
+        self.text_dimension = text_dimension
+        self.imsize = imsize
+
         self.train_transform = transforms.Compose([
-            transforms.Resize((cfg.IMSIZE, cfg.IMSIZE)),
+            transforms.Resize((self.imsize, self.imsize)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
-        
+
         self.test_transform = transforms.Compose([
-            transforms.Resize((cfg.IMSIZE, cfg.IMSIZE)),
+            transforms.Resize((self.imsize, self.imsize)),
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
@@ -31,14 +34,16 @@ class DeepFashionDataModule(pl.LightningDataModule):
                 data_dir=self.data_dir,
                 split='train',
                 transform=self.train_transform,
-                max_samples=self.max_samples
+                max_samples=self.max_samples,
+                text_dimension=self.text_dimension
             )
         if stage == 'test' or stage is None:
             self.test_dataset = DeepFashionCaptionDataset(
                 data_dir=self.data_dir,
                 split='test',
                 transform=self.test_transform,
-                max_samples=self.max_samples
+                max_samples=self.max_samples,
+                text_dimension=self.text_dimension
             )
 
     def train_dataloader(self):

@@ -1,0 +1,43 @@
+defaults: []
+
+dataset:
+  name: DeepFashion
+  embedding_type: roberta
+  data_dir: ""
+  val_dir: ""
+
+model:
+  net_g: ""
+  net_d: ""
+  stage1_g: ""
+
+training:
+  flag: true
+  batch_size: 256
+  max_epoch: 100
+  snapshot_interval: 5
+  pretrained_model: ""
+  pretrained_epoch: 600
+  lr_decay_epoch: 20
+  discriminator_lr: 0.0002
+  generator_lr: 0.0002
+  coeff_kl: 2.0
+
+gan:
+  z_dim: 100
+  imsize: 64
+  stage: 1
+  vis_count: 64
+  condition_dim: 128
+  df_dim: 96
+  gf_dim: 192
+  r_num: 2
+
+text:
+  dimension: 1024
+  embedding_filename: "/embeddings.pickle"
+
+system:
+  gpu_id: "0"
+  cuda: true
+  workers: 6

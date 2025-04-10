@@ -2,7 +2,6 @@ import os
 import torch
 import torch.nn as nn
 import torchvision.utils as vutils
-import mlpt.config.config as cfg
 
 
 def mkdir_p(path):
@@ -76,28 +75,28 @@ def KL_loss(mu, logvar):
     return KLD
 
 
-def save_img_results(data_img, fake, epoch, image_dir):
-    num = cfg.VIS_COUNT
+def save_img_results(data_img, fake, epoch, image_dir, vis_count=64):
+    num = vis_count
     fake = fake[0:num]
     if data_img is not None:
         data_img = data_img[0:num]
         vutils.save_image(
-            data_img, '%s/real_samples.png' % image_dir,
+            data_img, f'{image_dir}/real_samples.png',
             normalize=True)
         vutils.save_image(
-            fake.data, '%s/fake_samples_epoch_%03d.png' %
-                       (image_dir, epoch), normalize=True)
+            fake.data, f'{image_dir}/fake_samples_epoch_{epoch:03d}.png',
+            normalize=True)
     else:
         vutils.save_image(
-            fake.data, '%s/lr_fake_samples_epoch_%03d.png' %
-                       (image_dir, epoch), normalize=True)
+            fake.data, f'{image_dir}/lr_fake_samples_epoch_{epoch:03d}.png',
+            normalize=True)
 
 
 def save_model(netG, netD, epoch, model_dir):
     torch.save(
         netG.state_dict(),
-        '%s/netG_epoch_%d.pth' % (model_dir, epoch))
+        f'{model_dir}/netG_epoch_{epoch}.pth')
     torch.save(
         netD.state_dict(),
-        '%s/netD_epoch_last.pth' % (model_dir))
+        f'{model_dir}/netD_epoch_last.pth')
     print('Save G/D models')

@@ -1,6 +1,5 @@
 import os
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from PIL import Image
@@ -9,18 +8,16 @@ import pytorch_lightning as pl
 import clip
 import torchvision.transforms as transforms
 
-import mlpt.config.config as cfg
 from mlpt.models.model import Stage1_G, Stage1_D, Stage2_G, Stage2_D
 from mlpt.utils.utils import mkdir_p, weights_init, discriminator_loss, generator_loss, KL_loss, save_img_results, save_model
 
 
 class GANLitModule(pl.LightningModule):
-    def __init__(self, stage=1, output_dir='./output', **kwargs):
+    def __init__(self, cfg, output_dir='./output', **kwargs):
         super(GANLitModule, self).__init__()
-        self.save_hyperparameters()
         self.automatic_optimization = False
-
-        self.stage = stage
+        self.save_hyperparameters(ignore=["cfg"])
+        self.cfg = cfg
         self.output_dir = output_dir
         self.log_dir = os.path.join(output_dir, 'Log')
         self.model_dir = os.path.join(output_dir, 'Model')
@@ -29,19 +26,21 @@ class GANLitModule(pl.LightningModule):
         mkdir_p(self.model_dir)
         mkdir_p(self.image_dir)
 
-        self.batch_size = cfg.TRAIN_BATCH_SIZE
-        self.snapshot_interval = cfg.TRAIN_SNAPSHOT_INTERVAL
+        self.batch_size = self.cfg.training.batch_size
+        self.snapshot_interval = self.cfg.training.snapshot_interval
         self.gpus = [0]
 
-        if self.stage == 1:
+        if self.cfg.gan.stage == 1:
             self.netG, self.netD = self.load_network_stageI()
         else:
             self.netG, self.netD = self.load_network_stageII()
 
-        self.clip_model, self.clip_preprocess = clip.load("ViT-B/32", device=self.device)
+        self.clip_model, self.clip_preprocess = clip.load(
+            "ViT-B/32", device=self.device)
         self.clip_model.eval()
 
-        self.register_buffer("fixed_noise", torch.randn(self.batch_size, cfg.Z_DIM))
+        self.register_buffer("fixed_noise", torch.randn(
+            self.batch_size, self.cfg.gan.z_dim))
 
         self.epoch_clip_scores = []
 
@@ -51,16 +50,16 @@ class GANLitModule(pl.LightningModule):
         netD = Stage1_D()
         netD.apply(weights_init)
 
-        if cfg.NET_G != '':
-            state_dict = torch.load(cfg.NET_G, map_location='cpu')
+        if self.cfg.model.net_g != "":
+            state_dict = torch.load(self.cfg.model.net_g, map_location="cpu")
             netG.load_state_dict(state_dict)
-            self.print('Load StageI_G from: ' + cfg.NET_G)
-        if cfg.NET_D != '':
-            state_dict = torch.load(cfg.NET_D, map_location='cpu')
+            self.print("Load StageI_G from: " + self.cfg.model.net_g)
+        if self.cfg.model.net_d != "":
+            state_dict = torch.load(self.cfg.model.net_d, map_location="cpu")
             netD.load_state_dict(state_dict)
-            self.print('Load StageI_D from: ' + cfg.NET_D)
+            self.print("Load StageI_D from: " + self.cfg.model.net_d)
 
-        if cfg.CUDA:
+        if self.cfg.system.cuda:
             netG.cuda()
             netD.cuda()
         return netG, netD
@@ -69,46 +68,47 @@ class GANLitModule(pl.LightningModule):
         base_stage1 = Stage1_G()
         netG = Stage2_G(base_stage1)
         netG.apply(weights_init)
-        if cfg.NET_G != '':
-            state_dict = torch.load(cfg.NET_G, map_location='cpu')
+        if self.cfg.model.net_g != "":
+            state_dict = torch.load(self.cfg.model.net_g, map_location="cpu")
             netG.load_state_dict(state_dict)
-            self.print('Load StageII_G from: ' + cfg.NET_G)
-        elif cfg.STAGE1_G != '':
-            state_dict = torch.load(cfg.STAGE1_G, map_location='cpu')
+            self.print("Load StageII_G from: " + self.cfg.model.net_g)
+        elif self.cfg.model.stage1_g != "":
+            state_dict = torch.load(
+                self.cfg.model.stage1_g, map_location="cpu")
             netG.Stage1_G.load_state_dict(state_dict)
-            self.print('Load Stage1_G from: ' + cfg.STAGE1_G)
+            self.print("Load Stage1_G from: " + self.cfg.model.stage1_g)
         else:
-            self.print("Please give the Stage1_G path")
+            self.print("Please provide the Stage1_G path")
 
         netD = Stage2_D()
         netD.apply(weights_init)
-        if cfg.NET_D != '':
-            state_dict = torch.load(cfg.NET_D, map_location='cpu')
+        if self.cfg.model.net_d != "":
+            state_dict = torch.load(self.cfg.model.net_d, map_location="cpu")
             netD.load_state_dict(state_dict)
-            self.print('Load StageII_D from: ' + cfg.NET_D)
+            self.print("Load StageII_D from: " + self.cfg.model.net_d)
 
-        if cfg.CUDA:
+        if self.cfg.system.cuda:
             netG.cuda()
             netD.cuda()
         return netG, netD
 
     def configure_optimizers(self):
         optimizerD = torch.optim.Adam(self.netD.parameters(),
-                                      lr=cfg.TRAIN_DISCRIMINATOR_LR,
+                                      lr=self.cfg.training.discriminator_lr,
                                       betas=(0.5, 0.999))
         netG_params = [p for p in self.netG.parameters() if p.requires_grad]
         optimizerG = torch.optim.Adam(netG_params,
-                                      lr=cfg.TRAIN_GENERATOR_LR,
+                                      lr=self.cfg.training.generator_lr,
                                       betas=(0.5, 0.999))
 
         schedulerD = torch.optim.lr_scheduler.StepLR(
             optimizerD,
-            step_size=cfg.TRAIN_LR_DECAY_EPOCH,
+            step_size=self.cfg.training.lr_decay_epoch,
             gamma=0.5
         )
         schedulerG = torch.optim.lr_scheduler.StepLR(
             optimizerG,
-            step_size=cfg.TRAIN_LR_DECAY_EPOCH,
+            step_size=self.cfg.training.lr_decay_epoch,
             gamma=0.5
         )
         return [optimizerD, optimizerG], [schedulerD, schedulerG]
@@ -123,14 +123,14 @@ class GANLitModule(pl.LightningModule):
         txt_embedding = txt_embedding.to(device)
         batch_size = real_imgs.size(0)
 
-        noise = torch.randn(batch_size, cfg.Z_DIM, device=device)
+        noise = torch.randn(batch_size, self.cfg.gan.z_dim, device=device)
         real_labels = torch.ones(batch_size, device=device)
         fake_labels = torch.zeros(batch_size, device=device)
 
         opt_d, opt_g = self.optimizers()
 
         opt_d.zero_grad()
-        # Генерируем fake, но отрезаем градиенты (detach)
+        # Генерируем fake, отсекая градиенты для дискриминатора
         _, fake_imgs, mu, logvar = self.netG(txt_embedding, noise)
         errD, errD_real, errD_wrong, errD_fake = discriminator_loss(
             self.netD, real_imgs, fake_imgs.detach(),
@@ -143,24 +143,31 @@ class GANLitModule(pl.LightningModule):
         _, fake_imgs, mu, logvar = self.netG(txt_embedding, noise)
         errG = generator_loss(self.netD, fake_imgs, real_labels, mu, self.gpus)
         kl_loss = KL_loss(mu, logvar)
-        errG_total = errG + kl_loss * cfg.TRAIN_COEFF_KL
+        errG_total = errG + kl_loss * self.cfg.training.coeff_kl
         self.manual_backward(errG_total)
         opt_g.step()
 
-        self.log("Loss_D", errD, prog_bar=True, on_step=True, on_epoch=True, batch_size=batch_size)
-        self.log("Loss_G", errG, prog_bar=True, on_step=True, on_epoch=True, batch_size=batch_size)
-        self.log("KL_loss", kl_loss, prog_bar=True, on_step=True, on_epoch=True, batch_size=batch_size)
-        self.log("Loss_G_total", errG_total, prog_bar=True, on_step=True, on_epoch=True, batch_size=batch_size)
+        self.log("Loss_D", errD, prog_bar=True, on_step=True,
+                 on_epoch=True, batch_size=batch_size)
+        self.log("Loss_G", errG, prog_bar=True, on_step=True,
+                 on_epoch=True, batch_size=batch_size)
+        self.log("KL_loss", kl_loss, prog_bar=True, on_step=True,
+                 on_epoch=True, batch_size=batch_size)
+        self.log("Loss_G_total", errG_total, prog_bar=True,
+                 on_step=True, on_epoch=True, batch_size=batch_size)
 
         if batch_idx % 100 == 0:
             with torch.no_grad():
-                lr_fake, fake_fixed, _, _ = self.netG(txt_embedding, self.fixed_noise[:batch_size])
+                lr_fake, fake_fixed, _, _ = self.netG(
+                    txt_embedding, self.fixed_noise[:batch_size])
 
-            save_img_results(real_imgs.detach().cpu(), fake_fixed, self.current_epoch, self.image_dir)
+            save_img_results(real_imgs.detach().cpu(), fake_fixed, self.current_epoch, self.image_dir,
+                             vis_count=self.cfg.gan.vis_count)
             if lr_fake is not None:
-                save_img_results(None, lr_fake, self.current_epoch, self.image_dir)
+                save_img_results(None, lr_fake, self.current_epoch, self.image_dir,
+                                 vis_count=self.cfg.gan.vis_count)
 
-            num = cfg.VIS_COUNT
+            num = self.cfg.gan.vis_count
             prompts_to_save = min(len(prompts), num)
             prompts_filename = os.path.join(
                 self.image_dir,
@@ -171,22 +178,28 @@ class GANLitModule(pl.LightningModule):
                     f.write(f"[{j}] {prompts[j]}\n")
 
             fake_img_sample = fake_fixed[0].detach().cpu()
-            fake_img_sample = (fake_img_sample + 1.0) / 2.0 
+            fake_img_sample = (fake_img_sample + 1.0) / 2.0
             pil_img = transforms.ToPILImage()(fake_img_sample)
             prompt_text = prompts[0][:75]
             text_tokens = clip.tokenize([prompt_text]).to(device)
-            fake_img_processed = self.clip_preprocess(pil_img).unsqueeze(0).to(device)
+            fake_img_processed = self.clip_preprocess(
+                pil_img).unsqueeze(0).to(device)
 
             image_features = self.clip_model.encode_image(fake_img_processed)
-            image_features = image_features / image_features.norm(dim=-1, keepdim=True)
+            image_features = image_features / \
+                image_features.norm(dim=-1, keepdim=True)
             text_features = self.clip_model.encode_text(text_tokens)
-            text_features = text_features / text_features.norm(dim=-1, keepdim=True)
-            clip_score = F.cosine_similarity(image_features, text_features, dim=-1)
+            text_features = text_features / \
+                text_features.norm(dim=-1, keepdim=True)
+            clip_score = F.cosine_similarity(
+                image_features, text_features, dim=-1)
             clip_score_val = clip_score.item()
 
-            self.log("CLIP_score", clip_score_val, prog_bar=True, on_step=True, on_epoch=True, batch_size=batch_size)
+            self.log("CLIP_score", clip_score_val, prog_bar=True,
+                     on_step=True, on_epoch=True, batch_size=batch_size)
             self.epoch_clip_scores.append(clip_score_val)
-            self.print(f"Epoch {self.current_epoch}, batch {batch_idx} - CLIP Score: {clip_score_val:.4f}")
+            self.print(
+                f"Epoch {self.current_epoch}, batch {batch_idx} - CLIP Score: {clip_score_val:.4f}")
 
         return errG_total
 
@@ -195,22 +208,25 @@ class GANLitModule(pl.LightningModule):
         if epoch % self.snapshot_interval == 0:
             save_model(self.netG, self.netD, epoch, self.model_dir)
 
-        # Считаем средний CLIP‑score
+        # Рассчитываем средний CLIP‑score за эпоху
         if len(self.epoch_clip_scores) > 0:
-            avg_clip = sum(self.epoch_clip_scores) / len(self.epoch_clip_scores)
+            avg_clip = sum(self.epoch_clip_scores) / \
+                len(self.epoch_clip_scores)
         else:
             avg_clip = 0.0
 
         clip_log_file = os.path.join(self.log_dir, "clip_scores.txt")
         with open(clip_log_file, 'a', encoding='utf-8') as log_f:
-            log_f.write(f"Epoch {epoch}: Snapshot saved, Average CLIP Score = {avg_clip:.4f}\n")
+            log_f.write(
+                f"Epoch {epoch}: Snapshot saved, Average CLIP Score = {avg_clip:.4f}\n")
 
-        self.print(f"Epoch {epoch} - Model snapshot saved. Average CLIP Score: {avg_clip:.4f}")
+        self.print(
+            f"Epoch {epoch} - Model snapshot saved. Average CLIP Score: {avg_clip:.4f}")
 
     def sample(self, data_loader):
         self.netG.eval()
-        if ('.pth' in cfg.NET_G) and (cfg.NET_G.find('.pth') != -1):
-            save_dir = cfg.NET_G[:cfg.NET_G.find('.pth')]
+        if (".pth" in self.cfg.model.net_g) and (self.cfg.model.net_g.find(".pth") != -1):
+            save_dir = self.cfg.model.net_g[:self.cfg.model.net_g.find(".pth")]
         else:
             save_dir = "./sample_output"
 
@@ -218,7 +234,7 @@ class GANLitModule(pl.LightningModule):
             mkdir_p(save_dir)
 
         device = self.device
-        nz = cfg.Z_DIM
+        nz = self.cfg.gan.z_dim
         count = 0
         for i, data in enumerate(data_loader, 0):
             real_img_cpu, txt_embedding, prompts = data
@@ -228,7 +244,7 @@ class GANLitModule(pl.LightningModule):
 
             _, fake_imgs, mu, logvar = self.netG(txt_embedding, noise)
             for j in range(batch_size):
-                save_name = os.path.join(save_dir, f'{count + j}.png')
+                save_name = os.path.join(save_dir, f"{count + j}.png")
                 im = fake_imgs[j].detach().cpu().numpy()
                 im = (im + 1.0) * 127.5
                 im = im.astype(np.uint8)
@@ -236,7 +252,7 @@ class GANLitModule(pl.LightningModule):
                 im = Image.fromarray(im)
                 im.save(save_name)
 
-                prompt_save_name = os.path.join(save_dir, f'{count + j}.txt')
+                prompt_save_name = os.path.join(save_dir, f"{count + j}.txt")
                 with open(prompt_save_name, 'w', encoding='utf-8') as f:
                     f.write(prompts[j])
 
