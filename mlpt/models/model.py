@@ -1,21 +1,20 @@
 import torch
 import torch.nn as nn
 
-import mlpt.config.config as cfg
-
 class Stage1_G(nn.Module):
-    def __init__(self):
+    def __init__(self, gan_cfg, text_cfg):
         super(Stage1_G, self).__init__()
-        self.gf_dim = cfg.GAN_GF_DIM * 8
-        self.ef_dim = cfg.GAN_CONDITION_DIM
-        self.z_dim = cfg.Z_DIM
+        self.gf_dim = gan_cfg.gf_dim * 8
+        self.ef_dim = gan_cfg.condition_dim
+        self.z_dim = gan_cfg.z_dim
+        self.text_cfg = text_cfg
         self.define_module()
 
     def define_module(self):
         ninput = self.z_dim + self.ef_dim
         ngf = self.gf_dim
 
-        self.ca_net = Ca_Net()
+        self.ca_net = Ca_Net(self.text_cfg.dimension, self.ef_dim)
 
         # ngf x 4 x 4
         self.fc = nn.Sequential(
@@ -51,10 +50,10 @@ class Stage1_G(nn.Module):
 
 
 class Stage1_D(nn.Module):
-    def __init__(self):
+    def __init__(self, gan_cfg):
         super(Stage1_D, self).__init__()
-        self.df_dim = cfg.GAN_DF_DIM
-        self.ef_dim = cfg.GAN_CONDITION_DIM
+        self.df_dim = gan_cfg.df_dim
+        self.ef_dim = gan_cfg.condition_dim
         self.define_module()
 
     def define_module(self):
@@ -87,11 +86,13 @@ class Stage1_D(nn.Module):
 
 
 class Stage2_G(nn.Module):
-    def __init__(self, Stage1_G):
+    def __init__(self, Stage1_G, gan_cfg, text_cfg):
         super(Stage2_G, self).__init__()
-        self.gf_dim = cfg.GAN_GF_DIM
-        self.ef_dim = cfg.GAN_CONDITION_DIM
-        self.z_dim = cfg.Z_DIM
+        self.gan_cfg = gan_cfg
+        self.gf_dim = gan_cfg.gf_dim
+        self.ef_dim = gan_cfg.condition_dim
+        self.z_dim = gan_cfg.z_dim
+        self.text_cfg = text_cfg
         self.Stage1_G = Stage1_G
 
         for param in self.Stage1_G.parameters():
@@ -100,13 +101,13 @@ class Stage2_G(nn.Module):
 
     def _make_layer(self, block, channel_num):
         layers = []
-        for i in range(cfg.GAN_R_NUM):
+        for i in range(self.gan_cfg.r_num):
             layers.append(block(channel_num))
         return nn.Sequential(*layers)
 
     def define_module(self):
         ngf = self.gf_dim
-        self.ca_net = Ca_Net()
+        self.ca_net = Ca_Net(self.text_cfg.dimension, self.ef_dim)
         self.encoder = nn.Sequential(
             conv3x3(3, ngf),
             nn.ReLU(True),
@@ -152,10 +153,10 @@ class Stage2_G(nn.Module):
 
 
 class Stage2_D(nn.Module):
-    def __init__(self):
+    def __init__(self, gan_cfg):
         super(Stage2_D, self).__init__()
-        self.df_dim = cfg.GAN_DF_DIM
-        self.ef_dim = cfg.GAN_CONDITION_DIM
+        self.df_dim = gan_cfg.df_dim
+        self.ef_dim = gan_cfg.condition_dim
         self.define_module()
 
     def define_module(self):
@@ -196,10 +197,10 @@ class Stage2_D(nn.Module):
 
 
 class Ca_Net(nn.Module):
-    def __init__(self):
+    def __init__(self, text_dim, condition_dim):
         super(Ca_Net, self).__init__()
-        self.t_dim = cfg.TEXT_DIMENSION
-        self.c_dim = cfg.GAN_CONDITION_DIM
+        self.t_dim = text_dim
+        self.c_dim = condition_dim
         self.fc = nn.Linear(self.t_dim, self.c_dim * 2, bias=True)
         self.relu = nn.ReLU()
 

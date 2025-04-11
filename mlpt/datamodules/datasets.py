@@ -4,7 +4,6 @@ import pickle
 from PIL import Image
 import torch
 import torch.utils.data as data
-import mlpt.config.config as cfg
 
 
 class DeepFashionCaptionDataset(data.Dataset):
@@ -14,10 +13,10 @@ class DeepFashionCaptionDataset(data.Dataset):
         self.text_dimension = text_dimension
         self.image_dir = os.path.join(data_dir, 'images')
         captions_path = os.path.join(data_dir, 'captions.json')
-
+        
         with open(captions_path, 'r', encoding='utf-8') as f:
             self.captions_dict = json.load(f)
-
+        
         embedding_path = os.path.join(data_dir, 'embeddings.pickle')
         if os.path.isfile(embedding_path):
             with open(embedding_path, 'rb') as f:
@@ -45,7 +44,7 @@ class DeepFashionCaptionDataset(data.Dataset):
         image = Image.open(img_path).convert('RGB')
         if self.transform is not None:
             image = self.transform(image)
-
+        
         if self.embeddings is not None and filename in self.embeddings:
             text_embedding = torch.tensor(self.embeddings[filename])
         else:

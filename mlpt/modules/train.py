@@ -45,9 +45,9 @@ class GANLitModule(pl.LightningModule):
         self.epoch_clip_scores = []
 
     def load_network_stageI(self):
-        netG = Stage1_G()
+        netG = Stage1_G(self.cfg.gan, self.cfg.text)
         netG.apply(weights_init)
-        netD = Stage1_D()
+        netD = Stage1_D(self.cfg.gan)
         netD.apply(weights_init)
 
         if self.cfg.model.net_g != "":
@@ -65,8 +65,8 @@ class GANLitModule(pl.LightningModule):
         return netG, netD
 
     def load_network_stageII(self):
-        base_stage1 = Stage1_G()
-        netG = Stage2_G(base_stage1)
+        base_stage1 = Stage1_G(self.cfg.gan, self.cfg.text)
+        netG = Stage2_G(base_stage1, self.cfg.gan, self.cfg.text)
         netG.apply(weights_init)
         if self.cfg.model.net_g != "":
             state_dict = torch.load(self.cfg.model.net_g, map_location="cpu")
@@ -80,7 +80,7 @@ class GANLitModule(pl.LightningModule):
         else:
             self.print("Please provide the Stage1_G path")
 
-        netD = Stage2_D()
+        netD = Stage2_D(self.cfg.gan)
         netD.apply(weights_init)
         if self.cfg.model.net_d != "":
             state_dict = torch.load(self.cfg.model.net_d, map_location="cpu")
