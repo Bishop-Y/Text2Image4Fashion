@@ -1,0 +1,4 @@
+name: DeepFashion
+embedding_type: roberta
+data_dir: ""
+val_dir: ""

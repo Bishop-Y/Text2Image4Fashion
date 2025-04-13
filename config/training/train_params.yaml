@@ -1,0 +1,10 @@
+flag: true
+batch_size: 256
+max_epoch: 100
+snapshot_interval: 5
+pretrained_model: ""
+pretrained_epoch: 600
+lr_decay_epoch: 20
+discriminator_lr: 0.0002
+generator_lr: 0.0002
+coeff_kl: 2.0

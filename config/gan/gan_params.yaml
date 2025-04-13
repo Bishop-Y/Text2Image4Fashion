@@ -1,0 +1,8 @@
+z_dim: 100
+imsize: 64
+stage: 1
+vis_count: 64
+condition_dim: 128
+df_dim: 96
+gf_dim: 192
+r_num: 2

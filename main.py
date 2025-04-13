@@ -9,7 +9,7 @@ from mlpt.modules.train import GANLitModule
 from mlpt.datamodules.datamodule import DeepFashionDataModule
 
 
-@hydra.main(config_path="config", config_name="nirvana_config", version_base=None)
+@hydra.main(config_path="config", config_name="config", version_base=None)
 def main(cfg: DictConfig):
     # Выводим конфигурацию
     print(OmegaConf.to_yaml(cfg))

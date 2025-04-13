@@ -1,0 +1,7 @@
+defaults:
+  - dataset: deepfashion
+  - model: model_params
+  - training: train_params
+  - gan: gan_params
+  - text: text_params
+  - system: system_params
