@@ -53,3 +53,4 @@ class DeepFashionCaptionDataset(data.Dataset):
         prompt = self.captions_dict.get(filename, "Промпт не найден")
 
         return image, text_embedding, prompt
+

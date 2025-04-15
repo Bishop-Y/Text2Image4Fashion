@@ -259,3 +259,4 @@ class GANLitModule(pl.LightningModule):
             count += batch_size
 
         self.print("Sampling completed.")
+

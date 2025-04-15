@@ -72,3 +72,4 @@ class DeepFashionDataModule(pl.LightningDataModule):
             num_workers=self.workers,
             drop_last=True
         )
+
