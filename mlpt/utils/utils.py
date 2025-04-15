@@ -100,3 +100,4 @@ def save_model(netG, netD, epoch, model_dir):
         netD.state_dict(),
         f'{model_dir}/netD_epoch_last.pth')
     print('Save G/D models')
+    

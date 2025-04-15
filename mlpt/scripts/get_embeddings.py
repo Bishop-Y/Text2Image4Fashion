@@ -26,3 +26,4 @@ with open(embedding_save_path, 'wb') as f:
     pickle.dump(embeddings, f)
 
 print(f"Эмбеддинги сохранены в файле {embedding_save_path}")
+
