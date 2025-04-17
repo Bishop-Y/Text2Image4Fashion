@@ -9,15 +9,15 @@ def discriminator_loss(netD, real_imgs, fake_imgs, real_labels, fake_labels, con
     fake = fake_imgs.detach()
     real_features = netD(real_imgs)
     fake_features = netD(fake)
-    # real пары
+    # real pairs
     inputs = (real_features, cond)
     real_logits = netD.get_cond_logits(*inputs)
     errD_real = criterion(real_logits, real_labels)
-    # wrong пары
+    # wrong pairs
     inputs = (real_features[:(batch_size - 1)], cond[1:])
     wrong_logits = netD.get_cond_logits(*inputs)
     errD_wrong = criterion(wrong_logits, fake_labels[1:])
-    # fake пары
+    # fake pairs
     inputs = (fake_features, cond)
     fake_logits = netD.get_cond_logits(*inputs)
     errD_fake = criterion(fake_logits, fake_labels)

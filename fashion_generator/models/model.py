@@ -212,8 +212,8 @@ class Ca_Net(nn.Module):
 
     def reparametrize(self, mu, logvar):
         std = logvar.mul(0.5).exp_()
-        # Вместо создания eps через torch.cuda.FloatTensor используем torch.randn_like,
-        # чтобы eps создавался на том же устройстве, что и std.
+        # Instead of creating eps via torch.cuda.FloatTensor, use torch.randn_like
+        # so that eps is generated on the same device as std.
         eps = torch.randn_like(std)
         return eps.mul(std).add_(mu)
 
