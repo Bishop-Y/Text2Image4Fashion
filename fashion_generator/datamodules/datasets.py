@@ -31,7 +31,7 @@ class DeepFashionCaptionDataset(data.Dataset):
         else:
             self.embeddings = None
 
-        # Фильтруем записи: оставляем только те, для которых существует изображение
+        # Filter entries: keep only those for which the corresponding image exists
         valid_items = []
         for fname in self.captions_dict.keys():
             img_path = os.path.join(self.image_dir, fname)

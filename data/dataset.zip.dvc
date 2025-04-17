@@ -2,4 +2,4 @@ outs:
 - md5: 3415888ee85962c6c34c8e0eabe1c826
   size: 97268545
   hash: md5
-  path: DeepFashion-MultiModal-20250224T235407Z-003.zip
+  path: dataset.zip

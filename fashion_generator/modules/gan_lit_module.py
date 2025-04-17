@@ -140,7 +140,7 @@ class GANLitModule(pl.LightningModule):
         opt_d, opt_g = self.optimizers()
 
         opt_d.zero_grad()
-        # Генерируем fake, отсекая градиенты для дискриминатора
+        # Generate fake images, detaching gradients for the discriminator
         _, fake_imgs, mu, logvar = self.netG(txt_embedding, noise)
         errD, errD_real, errD_wrong, errD_fake = discriminator_loss(
             self.netD, real_imgs, fake_imgs.detach(),
@@ -218,7 +218,7 @@ class GANLitModule(pl.LightningModule):
         if epoch % self.snapshot_interval == 0:
             save_model(self.netG, self.netD, epoch, self.model_dir)
 
-        # Рассчитываем средний CLIP‑score за эпоху
+        # Calculating mean CLIP‑score per epoch
         if len(self.epoch_clip_scores) > 0:
             avg_clip = sum(self.epoch_clip_scores) / \
                 len(self.epoch_clip_scores)

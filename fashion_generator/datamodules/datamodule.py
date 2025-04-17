@@ -7,6 +7,9 @@ import torch
 
 
 def collate_deepfashion(batch: list[DeepFashionSample]) -> DeepFashionSample:
+    """
+    Collate function for DeepFashionCaptionDataset.
+    """
     images = torch.stack([item.image for item in batch], dim=0)
     embeddings = torch.stack([item.text_embedding for item in batch], dim=0)
     prompts = [item.prompt for item in batch]
@@ -15,8 +18,14 @@ def collate_deepfashion(batch: list[DeepFashionSample]) -> DeepFashionSample:
                              prompt=prompts)
 
 class DeepFashionDataModule(pl.LightningDataModule):
-    def __init__(self, data_dir, batch_size, workers,
-                 max_samples, text_dimension, imsize):
+    """
+    DataModule for DeepFashionCaptionDataset.
+    """
+    def __init__(self, data_dir: str, batch_size: int, workers: int,
+                 max_samples: int, text_dimension: int, imsize: int):
+        """
+        Initialize the DeepFashionDataModule.
+        """
         super().__init__()
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -39,6 +48,9 @@ class DeepFashionDataModule(pl.LightningDataModule):
         ])
 
     def setup(self, stage=None):
+        """
+        Set up the DeepFashionDataModule.
+        """
         if stage == 'fit' or stage is None:
             self.train_dataset = DeepFashionCaptionDataset(
                 data_dir=self.data_dir,
@@ -57,6 +69,9 @@ class DeepFashionDataModule(pl.LightningDataModule):
             )
 
     def train_dataloader(self):
+        """
+        Return the train dataloader.
+        """
         return DataLoader(
             self.train_dataset,
             batch_size=self.batch_size,
@@ -67,6 +82,9 @@ class DeepFashionDataModule(pl.LightningDataModule):
         )
 
     def test_dataloader(self):
+        """
+        Return the test dataloader.
+        """
         return DataLoader(
             self.test_dataset,
             batch_size=self.batch_size,
