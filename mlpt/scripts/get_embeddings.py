@@ -3,7 +3,6 @@ import json
 import pickle
 from sentence_transformers import SentenceTransformer
 import tqdm
-import config.config as cfg
 
 captions_path = os.path.join(cfg.DATA_DIR, 'captions.json')
 

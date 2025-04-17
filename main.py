@@ -3,7 +3,8 @@ import dateutil.tz
 import pytorch_lightning as pl
 from clearml import Task
 import hydra
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import DictConfig
+from omegaconf import OmegaConf
 
 from mlpt.modules.train import GANLitModule
 from mlpt.datamodules.datamodule import DeepFashionDataModule
@@ -14,17 +15,17 @@ def main(cfg: DictConfig):
     # Выводим конфигурацию
     print(OmegaConf.to_yaml(cfg))
 
-    task = Task.init(project_name="DeepFashion GAN",
-                     task_name="Trying ClearML Hydra")
 
+    task = Task.init(project_name=cfg.clearml.project_name,
+                    task_name=cfg.clearml.task_name)
+    
     cfg.gan.imsize = 64 if cfg.gan.stage == 1 else 256
-
-    if not cfg.training.flag:
-        cfg.model.net_g = "./output/models/netG_epoch_360.pth"
 
     now = datetime.datetime.now(dateutil.tz.tzlocal())
     timestamp = now.strftime('%Y_%m_%d_%H_%M_%S')
-    output_dir = f'./output/DeepFashion_{cfg.dataset.name}_{timestamp}'
+
+
+    output_dir = f"{cfg.output.base_dir}/{cfg.output.prefix}_{cfg.dataset.name}_{timestamp}"
 
     data_module = DeepFashionDataModule(
         data_dir=cfg.dataset.data_dir,
@@ -49,4 +50,3 @@ def main(cfg: DictConfig):
 
 if __name__ == "__main__":
     main()
-

@@ -21,13 +21,6 @@
 
 Рекомендуется использовать виртуальное окружение для управления зависимостями проекта.
 
-### На Windows:
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
 ### На Linux/MacOS:
 
 ```bash
@@ -85,15 +78,6 @@ ClearML используется для отслеживания экспери�
 3. Настройте креды:
 
    Через переменные окружения:
-
-   На Windows (CMD или PowerShell):
-
-   ```bash
-   set CLEARML_API_HOST=https://your-clearml-server.com
-   set CLEARML_WEB_HOST=https://your-clearml-server.com
-   set CLEARML_API_ACCESS_KEY=YOUR_ACCESS_KEY
-   set CLEARML_API_SECRET_KEY=YOUR_SECRET_KEY
-   ```
 
    На Linux/MacOS:
 
