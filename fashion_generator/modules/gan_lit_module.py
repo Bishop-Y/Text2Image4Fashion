@@ -8,9 +8,18 @@ import pytorch_lightning as pl
 import clip
 import torchvision.transforms as transforms
 
-from mlpt.models.model import Stage1_G, Stage1_D, Stage2_G, Stage2_D
-from mlpt.utils.utils import mkdir_p, weights_init, discriminator_loss, generator_loss, KL_loss, save_img_results, save_model
-from mlpt.datamodules.datasets import DeepFashionSample
+from fashion_generator.models.model import Stage1_G
+from fashion_generator.models.model import Stage1_D
+from fashion_generator.models.model import Stage2_G
+from fashion_generator.models.model import Stage2_D
+from fashion_generator.utils.utils import mkdir_p
+from fashion_generator.utils.utils import weights_init
+from fashion_generator.utils.utils import save_model
+from fashion_generator.utils.utils import save_img_results
+from fashion_generator.utils.losses import discriminator_loss
+from fashion_generator.utils.losses import generator_loss
+from fashion_generator.utils.losses import KL_loss
+from fashion_generator.datamodules.datasets import DeepFashionSample
 
 
 class GANLitModule(pl.LightningModule):
@@ -260,4 +269,3 @@ class GANLitModule(pl.LightningModule):
             count += batch_size
 
         self.print("Sampling completed.")
-

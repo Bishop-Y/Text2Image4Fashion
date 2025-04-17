@@ -1,8 +1,8 @@
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
-from mlpt.datamodules.datasets import DeepFashionCaptionDataset
-from mlpt.datamodules.datasets import DeepFashionSample
+from fashion_generator.datamodules.datasets import DeepFashionCaptionDataset
+from fashion_generator.datamodules.datasets import DeepFashionSample
 import torch
 
 

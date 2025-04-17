@@ -55,7 +55,9 @@ class DeepFashionCaptionDataset(data.Dataset):
         if self.embeddings is not None and filename in self.embeddings:
             text_embedding = torch.tensor(self.embeddings[filename])
         else:
-            text_embedding = torch.randn(self.text_dimension)
+            raise KeyError(
+                f"Не найден embedding для '{filename}'."
+            )
 
         prompt = self.captions_dict.get(filename, "Промпт не найден")
 
