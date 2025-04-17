@@ -1,7 +1,5 @@
-import os
 import torch
 import torch.nn as nn
-import torchvision.utils as vutils
 
 
 def discriminator_loss(netD, real_imgs, fake_imgs, real_labels, fake_labels, conditions, gpus):

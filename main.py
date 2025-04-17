@@ -6,8 +6,8 @@ import hydra
 from omegaconf import DictConfig
 from omegaconf import OmegaConf
 
-from mlpt.modules.train import GANLitModule
-from mlpt.datamodules.datamodule import DeepFashionDataModule
+from fashion_generator.modules.gan_lit_module import GANLitModule
+from fashion_generator.datamodules.datamodule import DeepFashionDataModule
 
 
 @hydra.main(config_path="config", config_name="config", version_base=None)

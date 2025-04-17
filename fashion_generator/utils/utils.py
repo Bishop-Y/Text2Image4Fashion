@@ -1,8 +1,7 @@
 import os
 import torch
-import torch.nn as nn
 import torchvision.utils as vutils
-from .losses import discriminator_loss, generator_loss, KL_loss
+
 
 def mkdir_p(path):
     os.makedirs(path, exist_ok=True)
@@ -46,4 +45,3 @@ def save_model(netG, netD, epoch, model_dir):
         netD.state_dict(),
         f'{model_dir}/netD_epoch_last.pth')
     print('Save G/D models')
-    
