@@ -10,6 +10,7 @@ import torchvision.transforms as transforms
 
 from mlpt.models.model import Stage1_G, Stage1_D, Stage2_G, Stage2_D
 from mlpt.utils.utils import mkdir_p, weights_init, discriminator_loss, generator_loss, KL_loss, save_img_results, save_model
+from mlpt.datamodules.datasets import DeepFashionSample
 
 
 class GANLitModule(pl.LightningModule):
@@ -116,11 +117,11 @@ class GANLitModule(pl.LightningModule):
     def on_train_epoch_start(self):
         self.epoch_clip_scores = []
 
-    def training_step(self, batch, batch_idx):
-        real_imgs, txt_embedding, prompts = batch
+    def training_step(self, batch: DeepFashionSample, batch_idx):
         device = self.device
-        real_imgs = real_imgs.to(device)
-        txt_embedding = txt_embedding.to(device)
+        real_imgs = batch.image.to(device)
+        txt_embedding = batch.text_embedding.to(device)
+        prompts = batch.prompt
         batch_size = real_imgs.size(0)
 
         noise = torch.randn(batch_size, self.cfg.gan.z_dim, device=device)
@@ -236,9 +237,9 @@ class GANLitModule(pl.LightningModule):
         device = self.device
         nz = self.cfg.gan.z_dim
         count = 0
-        for i, data in enumerate(data_loader, 0):
-            real_img_cpu, txt_embedding, prompts = data
-            txt_embedding = txt_embedding.to(device)
+        for sample in data_loader:
+            txt_embedding = sample.text_embedding.to(device)
+            prompts = sample.prompt
             batch_size = txt_embedding.size(0)
             noise = torch.randn(batch_size, nz, device=device)
 
