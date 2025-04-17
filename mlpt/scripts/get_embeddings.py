@@ -3,26 +3,32 @@ import json
 import pickle
 from sentence_transformers import SentenceTransformer
 import tqdm
+import hydra
+from omegaconf import DictConfig
+MODEL_NAME = 'stsb-roberta-large'
 
-captions_path = os.path.join(cfg.DATA_DIR, 'captions.json')
 
-with open(captions_path, 'r', encoding='utf-8') as f:
-    captions = json.load(f)
+@hydra.main(config_path="config", config_name="config", version_base=None)
+def get_embeddings(cfg: DictConfig):
+    data_dir = cfg.dataset.data_dir
+    captions_path = os.path.join(data_dir, 'captions.json')
 
-captions_subset = {k: captions[k] for k in list(captions.keys())}
-print(f"Будет использовано {len(captions_subset)} описаний.")
+    with open(captions_path, 'r', encoding='utf-8') as f:
+        captions = json.load(f)
 
-model = SentenceTransformer('stsb-roberta-large')
+    model = SentenceTransformer(MODEL_NAME)
 
-embeddings = {}
-for filename, caption in tqdm.tqdm(captions_subset.items()):
-    embedding = model.encode(caption)
-    embeddings[filename] = embedding
+    embeddings = {}
+    for filename, caption in tqdm.tqdm(captions.items()):
+        embeddings[filename] = model.encode(caption)
 
-# Сохраняем эмбеддинги в файл
-embedding_save_path = os.path.join(cfg.DATA_DIR, 'embeddings.pickle')
-with open(embedding_save_path, 'wb') as f:
-    pickle.dump(embeddings, f)
+    embedding_save_path = os.path.join(data_dir, 'embeddings.pickle')
+    with open(embedding_save_path, 'wb') as f:
+        pickle.dump(embeddings, f)
 
-print(f"Эмбеддинги сохранены в файле {embedding_save_path}")
+    print(f"Эмбеддинги сохранены в файле {embedding_save_path}")
+
+
+if __name__ == '__main__':
+    get_embeddings()
 
