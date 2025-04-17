@@ -2,7 +2,17 @@ import pytorch_lightning as pl
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 from mlpt.datamodules.datasets import DeepFashionCaptionDataset
+from mlpt.datamodules.datasets import DeepFashionSample
+import torch
 
+
+def collate_deepfashion(batch: list[DeepFashionSample]) -> DeepFashionSample:
+    images = torch.stack([item.image for item in batch], dim=0)
+    embeddings = torch.stack([item.text_embedding for item in batch], dim=0)
+    prompts = [item.prompt for item in batch]
+    return DeepFashionSample(image=images,
+                             text_embedding=embeddings,
+                             prompt=prompts)
 
 class DeepFashionDataModule(pl.LightningDataModule):
     def __init__(self, data_dir, batch_size, workers,
@@ -52,7 +62,8 @@ class DeepFashionDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.workers,
-            drop_last=True
+            drop_last=True,
+            collate_fn=collate_deepfashion
         )
 
     def test_dataloader(self):
@@ -61,6 +72,7 @@ class DeepFashionDataModule(pl.LightningDataModule):
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.workers,
-            drop_last=True
+            drop_last=True,
+            collate_fn=collate_deepfashion
         )
 

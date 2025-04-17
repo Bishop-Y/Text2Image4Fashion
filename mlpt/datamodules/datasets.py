@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import os
 import json
 import pickle
@@ -5,6 +6,12 @@ from PIL import Image
 import torch
 import torch.utils.data as data
 
+
+@dataclass
+class DeepFashionSample:
+    image: Image
+    text_embedding: torch.Tensor
+    prompt: str
 
 class DeepFashionCaptionDataset(data.Dataset):
     def __init__(self, data_dir, split='train', transform=None, max_samples=None, text_dimension=1024):
@@ -52,5 +59,9 @@ class DeepFashionCaptionDataset(data.Dataset):
 
         prompt = self.captions_dict.get(filename, "Промпт не найден")
 
-        return image, text_embedding, prompt
+        return DeepFashionSample(
+            image=image,
+            text_embedding=text_embedding,
+            prompt=prompt,
+        )
 
