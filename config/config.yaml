@@ -7,3 +7,5 @@ defaults:
   - system: system_params
   - output: output_params 
   - clearml: clearml_params
+  - prune: prune_params
+  - distill: distill_params

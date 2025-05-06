@@ -1,0 +1,4 @@
+out: 'weights/distill/distilled_gen.pth'
+epochs: 5
+lr: 0.001
+batch_size: 32

@@ -1,0 +1,2 @@
+amount: 0.2
+out: "weights/prune/pruned_gen.pth"
