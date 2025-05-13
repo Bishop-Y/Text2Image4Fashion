@@ -8,7 +8,7 @@ from omegaconf import DictConfig
 MODEL_NAME = 'stsb-roberta-large'
 
 
-@hydra.main(config_path="config", config_name="config", version_base=None)
+@hydra.main(config_path="../../config", config_name="config", version_base=None)
 def get_embeddings(cfg: DictConfig):
     data_dir = cfg.dataset.data_dir
     captions_path = os.path.join(data_dir, 'captions.json')

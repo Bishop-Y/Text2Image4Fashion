@@ -1,2 +1,2 @@
 project_name: "DeepFashion GAN"
-task_name: "Trying ClearML Hydra"
+task_name: ${exp.name}

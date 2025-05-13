@@ -9,3 +9,4 @@ defaults:
   - clearml: clearml_params
   - prune: prune_params
   - distill: distill_params
+  - finetune: finetune_params

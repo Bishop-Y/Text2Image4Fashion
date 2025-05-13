@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 from fashion_generator.modules.gan_lit_module import GANLitModule
 from fashion_generator.datamodules.datamodule import DeepFashionDataModule
 
+from pytorch_lightning.callbacks import EarlyStopping
 
 @hydra.main(config_path="config", config_name="config", version_base=None)
 def main(cfg: DictConfig):
@@ -39,6 +40,12 @@ def main(cfg: DictConfig):
     gan_module = GANLitModule(cfg=cfg, output_dir=output_dir)
 
     if cfg.training.flag:
+        early_stop = EarlyStopping(
+            monitor='val/CLIP_score',
+            patience=10,
+            mode='max'
+        )
+
         trainer = pl.Trainer(max_epochs=cfg.training.max_epoch,
                              accelerator="gpu", devices=1)
         trainer.fit(gan_module, datamodule=data_module)
