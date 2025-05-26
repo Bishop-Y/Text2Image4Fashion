@@ -88,6 +88,7 @@ def on_prompt_or_regenerate(msg):
             bot.send_message(user_id, "У вас пока нет предыдущих запросов.")
             return
         prompt = row[0]
+
         bot.send_message(
             user_id, f"Перегенерирую последний запрос:\n«{prompt}»…")
     else:
