@@ -4,4 +4,4 @@
 /captions.json
 /.env
 /model.onnx
-.DS_Store
+*.DS_Store
