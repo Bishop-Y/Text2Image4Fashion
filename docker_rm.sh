@@ -1,0 +1,1 @@
+docker rm fashion-bot || true

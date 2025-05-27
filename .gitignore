@@ -2,3 +2,6 @@
 /venv
 /embeddings.pickle
 /captions.json
+/.env
+/model.onnx
+*.DS_Store
