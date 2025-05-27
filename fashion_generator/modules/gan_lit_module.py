@@ -7,6 +7,8 @@ from PIL import Image
 import pytorch_lightning as pl
 import clip
 import torchvision.transforms as transforms
+from clearml import Task
+
 
 from fashion_generator.models.model import Stage1_G
 from fashion_generator.models.model import Stage1_D
@@ -35,6 +37,16 @@ class GANLitModule(pl.LightningModule):
         mkdir_p(self.log_dir)
         mkdir_p(self.model_dir)
         mkdir_p(self.image_dir)
+        task = Task.current_task()
+        if task is None:
+            # Offline или нет инициализации ClearML — просто заглушка
+            self.cl_task = None
+            self.cl_logger = None
+        else:
+            self.cl_task = task
+            self.cl_logger = task.get_logger()
+
+
 
         self.batch_size = self.cfg.training.batch_size
         self.snapshot_interval = self.cfg.training.snapshot_interval
@@ -53,6 +65,10 @@ class GANLitModule(pl.LightningModule):
             self.batch_size, self.cfg.gan.z_dim))
 
         self.epoch_clip_scores = []
+        self.epoch_losses_g    = []
+        self.epoch_losses_d    = []
+        self.epoch_kl_losses   = []
+        self.epoch_losses_g_tot= []
 
     def load_network_stageI(self):
         netG = Stage1_G(self.cfg.gan, self.cfg.text)
@@ -157,15 +173,22 @@ class GANLitModule(pl.LightningModule):
         self.manual_backward(errG_total)
         opt_g.step()
 
-        self.log("Loss_D", errD, prog_bar=True, on_step=True,
-                 on_epoch=True, batch_size=batch_size)
-        self.log("Loss_G", errG, prog_bar=True, on_step=True,
-                 on_epoch=True, batch_size=batch_size)
-        self.log("KL_loss", kl_loss, prog_bar=True, on_step=True,
-                 on_epoch=True, batch_size=batch_size)
-        self.log("Loss_G_total", errG_total, prog_bar=True,
-                 on_step=True, on_epoch=True, batch_size=batch_size)
+        self.epoch_losses_d.append(errD.item())
+        self.epoch_losses_g.append(errG.item())
+        self.epoch_kl_losses.append(kl_loss.item())
+        self.epoch_losses_g_tot.append(errG_total.item())
 
+
+        self.log("Loss_D_step",      errD,      on_step=True,  on_epoch=False, prog_bar=True)
+        self.log("Loss_G_step",      errG,      on_step=True,  on_epoch=False, prog_bar=True)
+        self.log("KL_loss_step",     kl_loss,   on_step=True,  on_epoch=False, prog_bar=True)
+        self.log("Loss_G_total_step", errG_total, on_step=True,  on_epoch=False, prog_bar=True)
+
+
+        self.cl_logger.report_scalar("Loss_D_step",      "value", errD.item(),      self.global_step)
+        self.cl_logger.report_scalar("Loss_G_step",      "value", errG.item(),      self.global_step)
+        self.cl_logger.report_scalar("KL_loss_step",     "value", kl_loss.item(),   self.global_step)
+        self.cl_logger.report_scalar("Loss_G_total_step","value", errG_total.item(), self.global_step)
         if batch_idx % 100 == 0:
             with torch.no_grad():
                 lr_fake, fake_fixed, _, _ = self.netG(
@@ -205,8 +228,10 @@ class GANLitModule(pl.LightningModule):
                 image_features, text_features, dim=-1)
             clip_score_val = clip_score.item()
 
-            self.log("CLIP_score", clip_score_val, prog_bar=True,
-                     on_step=True, on_epoch=True, batch_size=batch_size)
+            self.log("CLIP_score_step", clip_score_val, on_step=True, on_epoch=False, prog_bar=True)
+            self.cl_logger.report_scalar("CLIP_score_step","value", clip_score_val, self.global_step)
+            self.epoch_clip_scores.append(clip_score_val)
+
             self.epoch_clip_scores.append(clip_score_val)
             self.print(
                 f"Epoch {self.current_epoch}, batch {batch_idx} - CLIP Score: {clip_score_val:.4f}")
@@ -232,6 +257,31 @@ class GANLitModule(pl.LightningModule):
 
         self.print(
             f"Epoch {epoch} - Model snapshot saved. Average CLIP Score: {avg_clip:.4f}")
+
+        # --- эпоховые логи в PL ---
+        epoch = self.current_epoch
+
+        # средние значения
+        avg_loss_d    = np.mean(self.epoch_losses_d)
+        avg_loss_g    = np.mean(self.epoch_losses_g)
+        avg_kl        = np.mean(self.epoch_kl_losses)
+        avg_loss_g_tot= np.mean(self.epoch_losses_g_tot)
+        avg_clip      = np.mean(self.epoch_clip_scores) if self.epoch_clip_scores else 0.0
+
+        # PL-лог
+        self.log("Loss_D_epoch",      avg_loss_d,      on_epoch=True)
+        self.log("Loss_G_epoch",      avg_loss_g,      on_epoch=True)
+        self.log("KL_loss_epoch",     avg_kl,          on_epoch=True)
+        self.log("Loss_G_total_epoch",avg_loss_g_tot,  on_epoch=True)
+        self.log("CLIP_score_epoch",  avg_clip,        on_epoch=True)
+
+        # ClearML-лог
+        self.cl_logger.report_scalar("Loss_D_epoch",      "value", avg_loss_d,      epoch)
+        self.cl_logger.report_scalar("Loss_G_epoch",      "value", avg_loss_g,      epoch)
+        self.cl_logger.report_scalar("KL_loss_epoch",     "value", avg_kl,          epoch)
+        self.cl_logger.report_scalar("Loss_G_total_epoch","value", avg_loss_g_tot,  epoch)
+        self.cl_logger.report_scalar("CLIP_score_epoch",  "value", avg_clip,        epoch)
+
 
     def sample(self, data_loader):
         self.netG.eval()
